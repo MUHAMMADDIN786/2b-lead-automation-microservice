@@ -1,10 +1,6 @@
 import { GoogleGenerativeAI, Schema, SchemaType } from '@google/generative-ai';
 import { LeadAnalysis } from './openai';
 
-// Initialize Gemini client if API key is provided
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-
 // JSON Schema to force Gemini 1.5 Flash to return structured outputs
 const leadAnalysisSchema: any = {
   type: SchemaType.OBJECT,
@@ -58,13 +54,15 @@ export async function analyzeLeadWithGemini(
   company: string,
   inquiry: string
 ): Promise<LeadAnalysis> {
-  if (!genAI) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not set in your environment variables.');
   }
 
-  // Use the fast and cheap gemini-1.5-flash model
+  const genAI = new GoogleGenerativeAI(apiKey);
+  // Use the fast and cheap gemini-3.5-flash model
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3.5-flash',
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: leadAnalysisSchema,
