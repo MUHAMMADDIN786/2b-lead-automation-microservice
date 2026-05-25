@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { analyzeLeadAndDraftResponse } from '../services/openai';
+import { analyzeLeadAndDraftResponse, LeadAnalysis } from '../services/openai';
+import { analyzeLeadWithGemini } from '../services/gemini';
 import { syncToCRM } from '../services/crm';
 
 // Validation schema for incoming webhook leads
@@ -35,10 +36,16 @@ export async function handleLeadWebhook(req: Request, res: Response): Promise<vo
 
     const { name, email, company, inquiry } = validationResult.data;
 
-    console.log(`🤖 Received lead from ${name} (${company}). Analyzing with GPT-4o-mini...`);
+    let aiAnalysis: LeadAnalysis;
+    const useGemini = !!process.env.GEMINI_API_KEY;
 
-    // 3. Orchestrate OpenAI Lead Qualification
-    const aiAnalysis = await analyzeLeadAndDraftResponse(name, email, company, inquiry);
+    if (useGemini) {
+      console.log(`🤖 Received lead from ${name} (${company}). Analyzing with Gemini 1.5 Flash...`);
+      aiAnalysis = await analyzeLeadWithGemini(name, email, company, inquiry);
+    } else {
+      console.log(`🤖 Received lead from ${name} (${company}). Analyzing with GPT-4o-mini...`);
+      aiAnalysis = await analyzeLeadAndDraftResponse(name, email, company, inquiry);
+    }
 
     // 4. Sync lead & draft to CRM
     const crmResult = await syncToCRM({
