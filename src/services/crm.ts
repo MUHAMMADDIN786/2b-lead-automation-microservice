@@ -73,12 +73,24 @@ export async function syncToCRM(payload: LeadPayload): Promise<{ success: boolea
       throw new Error(`CRM API responded with code ${response.status}: ${errorText}`);
     }
 
-    const data = await response.json() as any;
-    console.log('✅ Successfully synced to CRM:', data);
+    const contentType = response.headers.get('content-type') || '';
+    let crmId = 'crm-id-success';
+
+    if (contentType.includes('application/json')) {
+      const data = await response.json() as any;
+      console.log('✅ Successfully synced to CRM (JSON response):', data);
+      crmId = data.id || data.crmId || crmId;
+    } else {
+      const textResponse = await response.text();
+      console.log(`✅ Successfully synced to CRM (Text response): "${textResponse}"`);
+      if (textResponse.toLowerCase().includes('accepted')) {
+        crmId = 'make-webhook-accepted';
+      }
+    }
 
     return {
       success: true,
-      crmId: data.id || data.crmId || 'crm-id-success'
+      crmId
     };
   } catch (error: any) {
     console.error('❌ CRM Sync Failed:', error.message);

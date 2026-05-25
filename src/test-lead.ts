@@ -1,5 +1,9 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import { handleLeadWebhook } from './webhooks/leadHandler';
+
+// Load environment variables
+dotenv.config();
 
 // Create a temporary testing server
 const app = express();
